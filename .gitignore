@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+
+# Build output
+build/
+dist/
+
+# PyInstaller
+*.spec
+
+# IDE
+.idea/
+
+# Logs
+*.log
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
