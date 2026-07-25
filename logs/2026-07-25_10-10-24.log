@@ -1,0 +1,5 @@
+Service Keter[Windows]._lanfiletransfer._tcp.local. added
+{'b14c2b8f-d3dd-45f7-9c0b-882569fd35bc': Device(device_id='b14c2b8f-d3dd-45f7-9c0b-882569fd35bc', hostname='Keter', ip_address='192.168.15.6', port=50007, operating_system='Windows', version='ver. alpha 0.1', is_local=False)}
+True
+Listening...
+Service Keter[Windows]._lanfiletransfer._tcp.local. removed

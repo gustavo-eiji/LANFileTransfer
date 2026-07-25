@@ -98,8 +98,8 @@ Known limitations:
 Clone the repository:
 
 ```bash
-git clone https://github.com/gustavo-eiji/LANFileTransfer-WIP.git
-cd LANFileTransfer-WIP
+git clone https://github.com/gustavo-eiji/LANFileTransfer.git
+cd LANFileTransfer
 ```
 
 Install dependencies:
