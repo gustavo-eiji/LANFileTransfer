@@ -5,6 +5,8 @@ __pycache__/
 # Build output
 build/
 dist/
+debug files/
+logs/
 
 # PyInstaller
 *.spec
