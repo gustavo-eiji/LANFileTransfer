@@ -13,10 +13,6 @@ logger = Logger()
 sys.stdout = logger
 
 
-# TODO:
-# Discovery and TransferServer will eventually run in background threads.
-# The GUI will become the application's main loop and call stop() on exit.
-
 def main():
     transfer_server = TransferServer(port=50007)
 

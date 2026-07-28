@@ -89,12 +89,20 @@ class MainWindow:
         )
 
         for device in self.device_manager.get_devices():
+
+            is_local = device.device_id == self.discovery.device_id
+            hostname = device.hostname
+
+            # Tags your own device on the GUI table
+            if is_local:
+                hostname += " (Your Device)"
+
             self.device_table.insert(
                 "",
                 "end",
                 iid=device.device_id,
                 values=(
-                    device.hostname,
+                    hostname,
                     device.operating_system,
                     device.ip_address,
                     device.port,
