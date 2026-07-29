@@ -4,6 +4,7 @@ from protocol import encode_message, decode_message, Message, MessageType
 from pathlib import Path
 import os
 import struct
+import hashlib
 
 # HOST = "192.168.15.2"
 # PORT = 50007
@@ -22,6 +23,20 @@ def recv_exact(conn, size: int) -> bytes | None:
         data += chunk
 
     return data
+
+def calculate_sha256(path: str) -> str:
+    sha = hashlib.sha256()
+
+    with open(path, "rb") as file:
+        while True:
+            chunk = file.read(1024 * 1024)  # 1 MiB
+
+            if not chunk:
+                break
+
+            sha.update(chunk)
+
+    return sha.hexdigest()
 
 ### SERVER SIDE ###
 class TransferServer:
@@ -80,6 +95,7 @@ class TransferServer:
                 if received_message.message_type == MessageType.FILE_OFFER:
                     filename = received_message.payload["filename"]
                     filesize = received_message.payload["filesize"]
+                    expected_hash = received_message.payload["sha256"]
 
                     self.send_packet(
                         conn,
@@ -90,6 +106,7 @@ class TransferServer:
                         conn,
                         filename,
                         filesize,
+                        expected_hash,
                     )
                     break
 
@@ -134,7 +151,7 @@ class TransferServer:
         conn.sendall(header)
         conn.sendall(data)
 
-    def receive_file(self, conn, filename: str, filesize: int):
+    def receive_file(self, conn, filename: str, filesize: int, expected_hash: str):
 
         received = 0
 
@@ -158,6 +175,16 @@ class TransferServer:
                     print(f"Received {received}/{filesize} bytes")
 
             print("Transfer complete.")
+
+            received_hash = calculate_sha256(filename)
+
+            print(f"Expected: {expected_hash}")
+            print(f"Received: {received_hash}")
+
+            if received_hash == expected_hash:
+                print("✓ SHA-256 verified.")
+            else:
+                print("✗ SHA-256 mismatch!")
 
         except socket.timeout:
             print("Connection timed out.")
@@ -186,14 +213,19 @@ class TransferClient:
         filename = Path(path).name
         filesize = os.path.getsize(path)
 
+        file_hash = calculate_sha256(path)
+        print(f"SHA-256: {file_hash}")
+
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client_socket:
             client_socket.connect((host, port))
 
             # Send FILE_OFFER
             offer = Message(
                 message_type=MessageType.FILE_OFFER,
-                payload={"filename": filename, "filesize": filesize}
-            )
+                payload={"filename": filename,
+                         "filesize": filesize,
+                         "sha256": file_hash,
+                         })
 
             self.send_packet(client_socket, offer)
 
