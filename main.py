@@ -5,6 +5,7 @@ import threading
 
 from gui import MainWindow
 from transfer import TransferServer, TransferClient
+from settings import TRANSFER_PORT
 
 import sys
 from logger import Logger
@@ -14,14 +15,14 @@ sys.stdout = logger
 
 
 def main():
-    transfer_server = TransferServer(port=50007)
+    transfer_server = TransferServer(port=TRANSFER_PORT)
 
     # Generates unique ID
     device_id = str(uuid.uuid4())
 
     device_manager = DeviceManager()
 
-    discovery = Discovery(device_manager, device_id, transfer_port=50007)
+    discovery = Discovery(device_manager, device_id, transfer_port=TRANSFER_PORT)
 
     transfer_client = TransferClient()
 

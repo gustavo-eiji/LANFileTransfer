@@ -1,4 +1,13 @@
-APP_NAME = "zeroconf_proj"
-APP_VERSION = "ver. beta 0.7"
-SERVICE_TYPE = "_lanfiletransfer._tcp.local."
-DEFAULT_PORT = 8000
+APP_NAME = "LANFileTransfer"
+APP_VERSION = "0.2 Alpha"
+
+TRANSFER_PORT = 50007
+TRANSFER_BUFFER_SIZE = 64 * 1024
+SOCKET_TIMEOUT = 30
+
+PROTOCOL_MAGIC = "LANFILETRANSFER"
+PROTOCOL_VERSION = 1
+
+DISCOVERY_SERVICE = "_lanfiletransfer._tcp.local."
+
+SECURITY_CODE = ""

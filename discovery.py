@@ -3,8 +3,7 @@ import socket
 import platform
 from device import Device
 from devicemanager import DeviceManager
-
-APP_VERSION = "ver. alpha 0.1"
+from settings import APP_VERSION, APP_NAME, DISCOVERY_SERVICE
 
 class MyListener(ServiceListener):
 
@@ -109,8 +108,8 @@ class Discovery:
 
         # Note that zeroconf does accept IP as a string, but socket.inet_aton() converts it into
         # byte format in order to comply with the official documentation
-        self.service_info: ServiceInfo = ServiceInfo(type_="_lanfiletransfer._tcp.local.",
-                                   name= f"{self.hostname}._lanfiletransfer._tcp.local.",
+        self.service_info: ServiceInfo = ServiceInfo(type_=DISCOVERY_SERVICE,
+                                   name= f"{self.hostname}.{APP_NAME}.{DISCOVERY_SERVICE}",
                                    addresses=[socket.inet_aton(self.ip_address)],
                                    port=transfer_port,
                                    properties=self.properties
@@ -122,7 +121,7 @@ class Discovery:
     def start(self):
 
         self.browser = ServiceBrowser(self.zeroconf,
-                                      "_lanfiletransfer._tcp.local.",
+                                      DISCOVERY_SERVICE,
                                       self.listener
                                       )
 

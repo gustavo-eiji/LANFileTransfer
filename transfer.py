@@ -1,15 +1,14 @@
+import hmac
 import socket
+
 from dispatcher import dispatch_message
 from protocol import encode_message, decode_message, Message, MessageType
 from pathlib import Path
 import os
 import struct
 import hashlib
-
-# HOST = "192.168.15.2"
-# PORT = 50007
-
-TRANSFER_BUFFER_SIZE = 64 * 1024  # 64 KiB
+from settings import TRANSFER_PORT, TRANSFER_BUFFER_SIZE, SOCKET_TIMEOUT, SECURITY_CODE
+import secrets
 
 def recv_exact(conn, size: int) -> bytes | None:
     data = b""
@@ -38,10 +37,30 @@ def calculate_sha256(path: str) -> str:
 
     return sha.hexdigest()
 
+
+def get_available_filename(filename: str) -> str:
+    path = Path(filename)
+
+    if not path.exists():
+        return str(path)
+
+    stem = path.stem
+    suffix = path.suffix
+
+    counter = 1
+
+    while True:
+        candidate = path.with_name(f"{stem} ({counter}){suffix}")
+
+        if not candidate.exists():
+            return str(candidate)
+
+        counter += 1
+
 ### SERVER SIDE ###
 class TransferServer:
 
-    def __init__(self, host: str = "", port: int = 50007):
+    def __init__(self, host: str = "", port: int = TRANSFER_PORT):
         self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR,1)
 
@@ -68,7 +87,7 @@ class TransferServer:
             try:
                 conn, addr = self.server_socket.accept()
                 print(f"{addr} connected")
-                conn.settimeout(30)
+                conn.settimeout(SOCKET_TIMEOUT)
 
             except socket.timeout:
                 continue
@@ -97,6 +116,37 @@ class TransferServer:
                     filesize = received_message.payload["filesize"]
                     expected_hash = received_message.payload["sha256"]
 
+                    received_nonce = received_message.payload.get("nonce")
+                    received_hmac = received_message.payload.get("hmac")
+
+                    if received_hmac is None or received_nonce is None:
+                        self.send_packet(
+                            conn,
+                            Message(
+                                MessageType.FILE_REJECT,
+                                {"reason": "Client uses incompatible protocol"}
+                            )
+                        )
+                        return
+
+                    expected_hmac = hmac.new(
+                        SECURITY_CODE.encode("utf-8"),
+                        received_nonce.encode("utf-8"),
+                        hashlib.sha256,
+                    ).hexdigest()
+
+                    if not hmac.compare_digest(received_hmac, expected_hmac):
+                        print(f"Authentication failed from {addr}.")
+
+                        self.send_packet(conn,
+                                         Message(
+                                             MessageType.FILE_REJECT,
+                                             {"reason":"Authentication failed"}
+                                         )
+                                    )
+
+                        return
+
                     self.send_packet(
                         conn,
                         Message(MessageType.FILE_ACCEPT, {})
@@ -108,6 +158,7 @@ class TransferServer:
                         filesize,
                         expected_hash,
                     )
+
                     break
 
                 reply_message = dispatch_message(received_message)
@@ -141,7 +192,15 @@ class TransferServer:
         #
         #     data += chunk
 
-        return decode_message(data)
+        # decode_message() validates its own identifier and version to prevent
+        # communication with other programs.
+        try:
+            return decode_message(data)
+
+        except ValueError as e:
+            print(e)
+            conn.close()
+            return None
 
     def send_packet(self, conn, message: Message) -> None:
         data = encode_message(message)
@@ -153,6 +212,9 @@ class TransferServer:
 
     def receive_file(self, conn, filename: str, filesize: int, expected_hash: str):
 
+        # Sanitize and add (1), (2), (3)... to filenames if necessary.
+        filename = Path(filename).name
+        filename = get_available_filename(filename)
         received = 0
 
         try:
@@ -185,11 +247,17 @@ class TransferServer:
                 print("✓ SHA-256 verified.")
             else:
                 print("✗ SHA-256 mismatch!")
+                if os.path.exists(filename):
+                    os.remove(filename)
 
         except socket.timeout:
             print("Connection timed out.")
+            if os.path.exists(filename):
+                os.remove(filename)
         except ConnectionError as e:
             print(e)
+            if os.path.exists(filename):
+                os.remove(filename)
         if received != filesize:
             print("File transfer incomplete.")
 
@@ -197,7 +265,7 @@ class TransferServer:
 class TransferClient:
     def send_message(self, host: str, port: int, message: Message) -> Message:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client_socket:
-            client_socket.settimeout(30)
+            client_socket.settimeout(SOCKET_TIMEOUT)
 
             client_socket.connect((host, port))
 
@@ -216,7 +284,13 @@ class TransferClient:
         file_hash = calculate_sha256(path)
         print(f"SHA-256: {file_hash}")
 
+        nonce = secrets.token_hex(16)
+        proof = hmac.new(SECURITY_CODE.encode(),
+                         nonce.encode(),
+                         hashlib.sha256).hexdigest()
+
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client_socket:
+            client_socket.settimeout(SOCKET_TIMEOUT)
             client_socket.connect((host, port))
 
             # Send FILE_OFFER
@@ -224,7 +298,9 @@ class TransferClient:
                 message_type=MessageType.FILE_OFFER,
                 payload={"filename": filename,
                          "filesize": filesize,
-                         "sha256": file_hash,
+                         "sha256": file_hash,   #file integrity
+                         "nonce": nonce,    #authentication
+                         "hmac": proof,    #authentication
                          })
 
             self.send_packet(client_socket, offer)

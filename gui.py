@@ -3,6 +3,7 @@ from tkinter import ttk, filedialog
 
 from devicemanager import DeviceManager
 from discovery import Discovery
+from settings import APP_NAME, APP_VERSION
 from transfer import TransferClient, TransferServer
 
 
@@ -24,7 +25,7 @@ class MainWindow:
 
         self.root = tk.Tk()
 
-        self.root.title("LANFileTransfer Alpha 0.1")
+        self.root.title(f"{APP_NAME} {APP_VERSION}")
         self.root.geometry("700x450")
 
         self.create_table()
