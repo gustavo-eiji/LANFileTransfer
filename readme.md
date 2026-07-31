@@ -1,6 +1,6 @@
 # LANFileTransfer (Work in Progress)
 
-LANFileTransfer is a lightweight Python application that allows **direct file transfers between computers connected to the same local WiFi or Ethernet network**.
+Lightweight, cross-platform LAN file transfers with automatic discovery and integrity verification. **direct file transfers between computers connected to the same local WiFi or Ethernet network**.
 
 Unlike cloud storage or internet-based file sharing services, LANFileTransfer transfers files **directly through your local router (LAN)**. Files never leave your local network, resulting in faster transfers, improved privacy, and no internet bandwidth usage.
 
@@ -13,14 +13,19 @@ Unlike cloud storage or internet-based file sharing services, LANFileTransfer tr
 - Automatic device discovery using Zeroconf (Bonjour/mDNS)
 - Cross-platform support
   - Windows
-  - macOS (currently tested)
+  - macOS
   - Linux (planned)
-- Direct peer-to-peer transfers over the local network
-- No account creation
-- No cloud services
-- No internet connection required after both devices are connected to the same network
+- Direct file transfers over the local network
+- SHA-256 integrity verification after every transfer
+- HMAC-based authentication using a shared security code
+- Protocol version checking for compatibility
+- Custom protocol identifier to reject non-LANFileTransfer traffic
+- Automatic handling of duplicate filenames (`file (1).txt`)
 - Progress bar during transfers
 - Simple graphical interface (Tkinter)
+- No account creation
+- No cloud services
+- No internet connection required after devices are connected to the same LAN
 
 ---
 
@@ -48,6 +53,22 @@ No data is uploaded to the internet.
 
 ---
 
+## Security
+
+LANFileTransfer includes several safeguards to prevent accidental or unauthorized communication.
+
+Current protections include:
+
+- SHA-256 verification of every transferred file
+- HMAC authentication using a shared security code
+- Protocol identifier ("magic bytes") to reject unrelated TCP traffic
+- Protocol version validation to prevent incompatible clients from communicating
+- Socket timeouts to avoid indefinitely stalled connections
+
+Future releases are planned to expand these protections further.
+
+---
+
 ## Requirements
 
 Both computers must:
@@ -66,12 +87,17 @@ The project is currently in Alpha.
 
 Working features:
 
-- Device discovery
+- Automatic device discovery
 - Windows ↔ Windows transfers
 - Windows ↔ macOS transfers
-- Direct LAN file transfers
-- Large file support (currently under testing)
+- Large file transfers
 - Transfer progress bar
+- SHA-256 file integrity verification
+- Protocol compatibility validation
+- HMAC authentication using a shared security code
+- Automatic duplicate filename handling
+- Socket timeout protection
+- Custom password setting
 
 Known limitations:
 
@@ -134,7 +160,6 @@ pyinstaller --windowed --onefile main.py
 
 ## Roadmap
 
-- Improved transfer reliability
 - Better error reporting
 - Transfer cancellation
 - Destination folder selection
@@ -144,24 +169,29 @@ pyinstaller --windowed --onefile main.py
 - Resume interrupted transfers
 - Transfer speed indicator
 - Estimated time remaining
-- Settings window
 - Automatic updates
+- Linux support
+- Mobile support
+- End-to-end encryption
 
 ---
 
 ## Why LANFileTransfer?
 
-Most file-sharing applications rely on cloud storage or external servers.
+Many file-sharing applications rely on cloud storage, third-party servers, or internet connectivity.
 
-MyShare was designed to keep file transfers:
+LANFileTransfer is designed to transfer files directly between computers on the same local network.
 
-- Local
-- Fast
-- Private
-- Simple
+Benefits include:
 
-Since files travel only through your local network infrastructure, transfer speed is limited primarily by your WiFi/Ethernet connection rather than your internet speed.
+- Faster transfers on modern LANs
+- No cloud uploads
+- No internet bandwidth usage
+- Greater privacy
+- Minimal setup
+- Cross-platform compatibility
 
+Transfer speed is limited primarily by your local network hardware (Wi-Fi or Ethernet) rather than your internet connection.
 ---
 
 ## License

@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import ttk, filedialog
 
+from config import Config
 from devicemanager import DeviceManager
 from discovery import Discovery
 from settings import APP_NAME, APP_VERSION
@@ -14,7 +15,8 @@ class MainWindow:
             device_manager: DeviceManager,
             discovery: Discovery,
             transfer_server: TransferServer,
-            transfer_client: TransferClient
+            transfer_client: TransferClient,
+            config: Config,
     ):
 
         self.progress_bar = None
@@ -22,6 +24,7 @@ class MainWindow:
         self.discovery = discovery
         self.transfer_server = transfer_server
         self.transfer_client = transfer_client
+        self.config = config
 
         self.root = tk.Tk()
 
@@ -70,6 +73,7 @@ class MainWindow:
         button_frame = ttk.Frame(self.root)
         button_frame.pack(fill="x", padx=10)
 
+        ### REFRESH
         self.refresh_button = ttk.Button(
             button_frame,
             text="Refresh",
@@ -77,12 +81,21 @@ class MainWindow:
         )
         self.refresh_button.pack(side="left")
 
+        ### SEND FILE
         self.send_button = ttk.Button(
             button_frame,
             text="Send File",
             command=self.send_file,
         )
         self.send_button.pack(side="right")
+
+        ### SETTINGS
+        self.settings_button = ttk.Button(
+            button_frame,
+            text="Settings",
+            command=self.user_settings,
+        )
+        self.settings_button.pack(side="bottom")
 
     def refresh_devices(self):
         self.device_table.delete(
@@ -140,6 +153,62 @@ class MainWindow:
         self.status.set(f"{filename} Transfer Complete")
 
         self.root.after(2000, lambda: self.progress.set(0))
+
+
+    def user_settings(self):
+
+        window = tk.Toplevel(self.root)
+        window.title("Settings")
+        window.geometry("350x100")
+        window.resizable(False, False)
+
+        ttk.Label(
+            window,
+            text="Password"
+        ).pack(anchor="w", padx=10, pady=(10, 0))
+
+        security_entry = ttk.Entry(window, width=40, show="*")
+        security_entry.pack(fill="x", padx=10)
+
+        # Show the current value
+        security_entry.insert(0, self.config.security_code)
+
+        show_password = tk.BooleanVar(value=False)
+
+        ttk.Checkbutton(
+            window,
+            text="Show",
+            variable=show_password,
+            command=lambda: self.toggle_password(
+                security_entry,
+                show_password,
+            ),
+        ).pack(anchor="w", padx=10)
+
+        ttk.Button(
+            window,
+            text="Save",
+            command=lambda: self.save_settings(
+                security_entry.get(),
+                window,
+            ),
+        ).pack(pady=15)
+
+    def toggle_password(self, entry, show_var):
+
+        if show_var.get():
+            entry.config(show="")
+        else:
+            entry.config(show="*")
+
+    def save_settings(self, security_code: str, window):
+
+        self.config.set_new_code(security_code)
+
+        self.status.set("Settings saved.")
+
+        window.destroy()
+
 
     def create_status_bar(self):
 

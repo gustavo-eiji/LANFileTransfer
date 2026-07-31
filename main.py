@@ -1,3 +1,4 @@
+from config import Config
 from devicemanager import DeviceManager
 from discovery import Discovery
 import uuid
@@ -12,7 +13,7 @@ from logger import Logger
 
 logger = Logger()
 sys.stdout = logger
-
+config = Config()
 
 def main():
     transfer_server = TransferServer(port=TRANSFER_PORT)
@@ -31,6 +32,7 @@ def main():
         discovery=discovery,
         transfer_server=transfer_server,
         transfer_client=transfer_client,
+        config=config,
     )
 
 
