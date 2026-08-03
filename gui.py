@@ -1,5 +1,6 @@
 import tkinter as tk
-from tkinter import ttk, filedialog
+from pathlib import Path
+from tkinter import ttk, filedialog, messagebox
 
 from config import Config
 from devicemanager import DeviceManager
@@ -129,6 +130,10 @@ class MainWindow:
 
         if not selection:
             print("No device selected")
+            messagebox.showwarning(
+                title="No device selected",
+                detail="Please select a device before sending a file."
+            )
             return
 
         device_id = selection[0]
@@ -141,16 +146,38 @@ class MainWindow:
             return
 
         self.progress.set(0)
-        self.status.set(f"Sending {filename}")
 
-        self.transfer_client.send_file(
+        try:
+            self.status.set(f"Sending {Path(filename).name}")
+
+            success, message = self.transfer_client.send_file(
             filename,
             device.ip_address,
             device.port,
             progress_callback=self.update_progress,
         )
 
-        self.status.set(f"{filename} Transfer Complete")
+        except Exception as e:
+            messagebox.showerror(
+                title="Unexpected Error",
+                message=str(e),
+            )
+            return
+
+
+        if success:
+            messagebox.showinfo(
+                "Transfer complete",
+                message
+            )
+            self.status.set(f"{Path(filename).name} Transfer Complete")
+        else:
+            messagebox.showerror(
+                "Transfer failed",
+                message
+            )
+            self.status.set("Transfer Failed")
+
 
         self.root.after(2000, lambda: self.progress.set(0))
 
@@ -170,21 +197,6 @@ class MainWindow:
         security_entry = ttk.Entry(window, width=40)
         security_entry.pack(fill="x", padx=10)
 
-        # # Show the current value
-        # security_entry.insert(0, self.config.get_security_key())
-        #
-        # show_password = tk.BooleanVar(value=False)
-        #
-        # ttk.Checkbutton(
-        #     window,
-        #     text="Show",
-        #     variable=show_password,
-        #     command=lambda: self.toggle_password(
-        #         security_entry,
-        #         show_password,
-        #     ),
-        # ).pack(anchor="w", padx=10)
-
         ttk.Button(
             window,
             text="Save",
@@ -193,13 +205,6 @@ class MainWindow:
                 window,
             ),
         ).pack(pady=15)
-
-    def toggle_password(self, entry, show_var):
-
-        if show_var.get():
-            entry.config(show="")
-        else:
-            entry.config(show="*")
 
     def save_settings(self, security_code: str, window):
 
@@ -245,16 +250,3 @@ class MainWindow:
     def update_progress(self, percent):
         self.progress.set(percent)
         self.root.update_idletasks()
-
-
-# if __name__ == "__main__":
-#
-#     device_manager = DeviceManager()
-#     transfer_client = TransferClient()
-
-    # gui = MainWindow(
-    #     device_manager,
-    #     transfer_client,
-    # )
-
-    # gui.run()

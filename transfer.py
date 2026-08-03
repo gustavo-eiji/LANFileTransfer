@@ -61,9 +61,10 @@ def get_available_filename(filename: str) -> str:
 ### SERVER SIDE ###
 class TransferServer:
 
-    def __init__(self, host: str = "", port: int = TRANSFER_PORT):
+    def __init__(self, config: Config, host: str = "", port: int = TRANSFER_PORT) -> None:
         self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR,1)
+        self.config = config
 
         self.host = host
         self.port = port
@@ -131,7 +132,7 @@ class TransferServer:
                         return
 
                     expected_hmac = hmac.new(
-                        Config.get_security_key(),
+                        self.config.get_security_key(),
                         received_nonce.encode("utf-8"),
                         hashlib.sha256,
                     ).hexdigest()
@@ -250,11 +251,13 @@ class TransferServer:
                 print("✗ SHA-256 mismatch!")
                 if os.path.exists(filename):
                     os.remove(filename)
+                return False, "File integrity verification failed."
 
         except socket.timeout:
             print("Connection timed out.")
             if os.path.exists(filename):
                 os.remove(filename)
+            return False, "Connection timed out"
         except ConnectionError as e:
             print(e)
             if os.path.exists(filename):
@@ -264,11 +267,18 @@ class TransferServer:
 
 ### CLIENT SIDE ###
 class TransferClient:
+
+    def __init__(self, config: Config):
+        self.config = config
+
     def send_message(self, host: str, port: int, message: Message) -> Message:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client_socket:
             client_socket.settimeout(SOCKET_TIMEOUT)
 
-            client_socket.connect((host, port))
+            try:
+                client_socket.connect((host, port))
+            except OSError:
+                return False, "Unable to connect to the selected device."
 
             self.send_packet(client_socket, message)
 
@@ -286,13 +296,17 @@ class TransferClient:
         print(f"SHA-256: {file_hash}")
 
         nonce = secrets.token_hex(16)
-        proof = hmac.new(Config.get_security_key(),
+        proof = hmac.new(self.config.get_security_key(),
                          nonce.encode(),
                          hashlib.sha256).hexdigest()
 
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client_socket:
             client_socket.settimeout(SOCKET_TIMEOUT)
-            client_socket.connect((host, port))
+
+            try:
+                client_socket.connect((host, port))
+            except OSError:
+                return False, "Unable to connect to the selected device."
 
             # Send FILE_OFFER
             offer = Message(
@@ -312,17 +326,18 @@ class TransferClient:
                 print("Connection closed.")
                 return
 
-            if reply.message_type != MessageType.FILE_ACCEPT:
+            if reply.message_type == MessageType.FILE_REJECT:
                 print("Transfer rejected.")
-                return
-
-            print("Transfer accepted.")
+                return False, reply.payload.get("reason", "Transfer rejected.")
 
             self.stream_file(
                 client_socket,
                 path,
                 progress_callback,
             )
+
+            print("Transfer accepted.")
+            return True, "Transfer completed."
 
 
     def receive_packet(self, conn) -> Message | None:

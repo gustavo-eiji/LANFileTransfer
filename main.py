@@ -16,7 +16,7 @@ sys.stdout = logger
 config = Config()
 
 def main():
-    transfer_server = TransferServer(port=TRANSFER_PORT)
+    transfer_server = TransferServer(port=TRANSFER_PORT, config=config)
 
     # Generates unique ID
     device_id = str(uuid.uuid4())
@@ -25,7 +25,7 @@ def main():
 
     discovery = Discovery(device_manager, device_id, transfer_port=TRANSFER_PORT)
 
-    transfer_client = TransferClient()
+    transfer_client = TransferClient(config=config)
 
     gui = MainWindow(
         device_manager=device_manager,
