@@ -159,31 +159,31 @@ class MainWindow:
 
         window = tk.Toplevel(self.root)
         window.title("Settings")
-        window.geometry("350x100")
+        window.geometry("350x130")
         window.resizable(False, False)
 
         ttk.Label(
             window,
-            text="Password"
+            text="Set new password"
         ).pack(anchor="w", padx=10, pady=(10, 0))
 
-        security_entry = ttk.Entry(window, width=40, show="*")
+        security_entry = ttk.Entry(window, width=40)
         security_entry.pack(fill="x", padx=10)
 
-        # Show the current value
-        security_entry.insert(0, self.config.security_code)
-
-        show_password = tk.BooleanVar(value=False)
-
-        ttk.Checkbutton(
-            window,
-            text="Show",
-            variable=show_password,
-            command=lambda: self.toggle_password(
-                security_entry,
-                show_password,
-            ),
-        ).pack(anchor="w", padx=10)
+        # # Show the current value
+        # security_entry.insert(0, self.config.get_security_key())
+        #
+        # show_password = tk.BooleanVar(value=False)
+        #
+        # ttk.Checkbutton(
+        #     window,
+        #     text="Show",
+        #     variable=show_password,
+        #     command=lambda: self.toggle_password(
+        #         security_entry,
+        #         show_password,
+        #     ),
+        # ).pack(anchor="w", padx=10)
 
         ttk.Button(
             window,

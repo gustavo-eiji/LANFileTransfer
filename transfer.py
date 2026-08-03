@@ -1,6 +1,7 @@
 import hmac
 import socket
 
+from config import Config
 from dispatcher import dispatch_message
 from protocol import encode_message, decode_message, Message, MessageType
 from pathlib import Path
@@ -130,7 +131,7 @@ class TransferServer:
                         return
 
                     expected_hmac = hmac.new(
-                        SECURITY_CODE.encode("utf-8"),
+                        Config.get_security_key(),
                         received_nonce.encode("utf-8"),
                         hashlib.sha256,
                     ).hexdigest()
@@ -285,7 +286,7 @@ class TransferClient:
         print(f"SHA-256: {file_hash}")
 
         nonce = secrets.token_hex(16)
-        proof = hmac.new(SECURITY_CODE.encode(),
+        proof = hmac.new(Config.get_security_key(),
                          nonce.encode(),
                          hashlib.sha256).hexdigest()
 

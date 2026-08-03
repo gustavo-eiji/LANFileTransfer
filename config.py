@@ -1,6 +1,9 @@
 from pathlib import Path
 import json
 import sys
+import hashlib
+import secrets
+
 
 if getattr(sys, "frozen", False):
     # Running as a bundled executable
@@ -9,6 +12,12 @@ else:
     # Running as a Python script
     base_dir = Path(__file__).resolve().parent
 
+def derive_key(password:str, salt: bytes) -> bytes:
+    return hashlib.pbkdf2_hmac(
+        "sha256",
+        password.encode("utf-8"),
+        salt,
+        200_000)
 
 
 class Config:
@@ -19,7 +28,8 @@ class Config:
 
         self.file = self.folder / "config.json"
 
-        self.security_code = ""
+        self.security_key = ""
+        self.security_salt = ""
         self.transfer_port = 50007
 
         self.load()
@@ -31,14 +41,16 @@ class Config:
 
         data = json.loads(self.file.read_text())
 
-        self.security_code = data.get("security_code", "")
+        self.security_key = data.get("security_key", "")
+        self.security_salt = data.get("security_salt", "")
         self.transfer_port = data.get("transfer_port", 50007)
 
     def save(self):
         self.file.write_text(
             json.dumps(
                 {
-                    "security_code": self.security_code,
+                    "security_key": self.security_key,
+                    "security_salt": self.security_salt,
                     "transfer_port": self.transfer_port,
                 },
                 indent=4,
@@ -46,9 +58,19 @@ class Config:
         )
 
     def set_new_code(self, new_code: str):
-        self.security_code = new_code
+
+        salt = secrets.token_bytes(16)
+
+        key = derive_key(new_code, salt)
+
+        self.security_key = key.hex()
+        self.security_salt = salt.hex()
+
         self.save()
 
     def set_new_transfer_port(self, new_transfer_port: int):
         self.transfer_port = new_transfer_port
         self.save()
+
+    def get_security_key(self) -> bytes:
+        return bytes.fromhex(self.security_key)
