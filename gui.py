@@ -7,7 +7,7 @@ from devicemanager import DeviceManager
 from discovery import Discovery
 from settings import APP_NAME, APP_VERSION
 from transfer import TransferClient, TransferServer
-
+import threading
 
 class MainWindow:
 
@@ -96,7 +96,7 @@ class MainWindow:
             text="Settings",
             command=self.user_settings,
         )
-        self.settings_button.pack(side="bottom")
+        self.settings_button.pack(side="left", padx=5)
 
     def refresh_devices(self):
         self.device_table.delete(
@@ -132,7 +132,7 @@ class MainWindow:
             print("No device selected")
             messagebox.showwarning(
                 title="No device selected",
-                detail="Please select a device before sending a file."
+                message="Please select a device before sending a file."
             )
             return
 
@@ -146,41 +146,70 @@ class MainWindow:
             return
 
         self.progress.set(0)
+        self.status.set(f"Sending {Path(filename).name}")
+
+        # Disable Send button during transfer
+        self.send_button.config(state="disabled")
+        self.refresh_button.config(state="disabled")
+
+        threading.Thread(
+            target=self.transfer_worker,
+            args=(filename, device),
+            daemon=True,
+        ).start()
+
+
+
+
+    def transfer_worker(self, filename, device):
 
         try:
-            self.status.set(f"Sending {Path(filename).name}")
-
             success, message = self.transfer_client.send_file(
-            filename,
-            device.ip_address,
-            device.port,
-            progress_callback=self.update_progress,
-        )
+                filename,
+                device.ip_address,
+                device.port,
+                progress_callback=self.update_progress,
+            )
+
 
         except Exception as e:
-            messagebox.showerror(
-                title="Unexpected Error",
-                message=str(e),
+            self.root.after(
+                0,
+                lambda: (
+                    self.send_button.config(state="normal"),
+                    self.refresh_button.config(state="normal"),
+                    messagebox.showerror(
+                        "Unexpected Error",
+                        str(e),
+                    ),
+                    self.status.set("Transfer Failed"),
+                ),
             )
+
             return
 
 
         if success:
-            messagebox.showinfo(
-                "Transfer complete",
-                message
+            self.root.after(
+                0,
+                lambda: messagebox.showinfo(
+                    "Transfer complete",
+                    message,
+                )
             )
-            self.status.set(f"{Path(filename).name} Transfer Complete")
+
         else:
-            messagebox.showerror(
-                "Transfer failed",
-                message
+            self.root.after(
+                0,
+                lambda: messagebox.showinfo(
+                    "Transfer Failed",
+                    message,
+                )
             )
-            self.status.set("Transfer Failed")
 
-
+        self.send_button.config(state="normal")
+        self.refresh_button.config(state="normal")
         self.root.after(2000, lambda: self.progress.set(0))
-
 
     def user_settings(self):
 
@@ -248,5 +277,7 @@ class MainWindow:
                                )
 
     def update_progress(self, percent):
-        self.progress.set(percent)
-        self.root.update_idletasks()
+        self.root.after(
+            0,
+            lambda: self.progress.set(percent)
+        )
