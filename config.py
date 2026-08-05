@@ -4,6 +4,8 @@ import sys
 import hashlib
 import secrets
 
+# PATCH FOR ANDROID INTEROP
+# FIXED_SALT = bytes.fromhex("3f2a9c8e1d4b7f605a3c9e1b4d7f2a06")
 
 if getattr(sys, "frozen", False):
     # Running as a bundled executable

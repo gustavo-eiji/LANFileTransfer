@@ -9,6 +9,13 @@ from settings import APP_NAME, APP_VERSION
 from transfer import TransferClient, TransferServer
 import threading
 
+from qrcode.main import QRCode
+from qrcode.constants import ERROR_CORRECT_M
+from PIL import ImageTk
+
+# Must match the prefix the Android app's QR scanner looks for.
+QR_PAIRING_PREFIX = "LANFTSALT1:"
+
 class MainWindow:
 
     def __init__(
@@ -97,6 +104,14 @@ class MainWindow:
             command=self.user_settings,
         )
         self.settings_button.pack(side="left", padx=5)
+
+        ### PAIRING QR -- ADDED FOR ANDROID QR PAIRING
+        self.qr_button = ttk.Button(
+            button_frame,
+            text="Pairing QR",
+            command=self.show_pairing_qr,
+        )
+        self.qr_button.pack(side="left", padx=1)
 
     def refresh_devices(self):
         self.device_table.delete(
@@ -242,6 +257,48 @@ class MainWindow:
         self.status.set("Settings saved.")
 
         window.destroy()
+
+    # ADDED FOR ANDROID QR PAIRING
+    def show_pairing_qr(self):
+        if not self.config.security_salt:
+            messagebox.showwarning(
+                title="No password set",
+                message="Set a password under Settings first, then click "
+                        "Pairing QR again to generate a code for your phone.",
+            )
+            return
+
+        qr_payload = f"{QR_PAIRING_PREFIX}{self.config.security_salt}"
+
+        qr = QRCode(
+            version=None,
+            error_correction=ERROR_CORRECT_M,
+            box_size=8,
+            border=4,
+        )
+        qr.add_data(qr_payload)
+        qr.make(fit=True)
+        image = qr.make_image(fill_color="black", back_color="white").convert("RGB")
+
+        window = tk.Toplevel(self.root)
+        window.title("Pairing QR")
+        window.resizable(False, False)
+
+        # Keep a reference on the window itself -- otherwise Tkinter's
+        # garbage collector can drop the image before it's ever drawn.
+        window.qr_photo = ImageTk.PhotoImage(image)
+
+        ttk.Label(window, image=window.qr_photo).pack(padx=15, pady=(15, 5))
+
+        ttk.Label(
+            window,
+            text=(
+                "Scan this from the Android app's \"Scan to pair\" button.\n"
+                "This code changes every time you set a new password here --\n"
+                "rescan after changing your password."
+            ),
+            justify="center",
+        ).pack(padx=15, pady=(0, 15))
 
 
     def create_status_bar(self):

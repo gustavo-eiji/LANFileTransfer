@@ -60,7 +60,7 @@ Every message contains:
 {
     "magic": "LANFILETRANSFER",
     "version": 1,
-    "message_type": "...",
+    "type": "...",
     "payload": {}
 }
 ```
@@ -89,7 +89,7 @@ Connections using unsupported versions should be rejected.
 
 ---
 
-## message_type
+## type
 
 Defines the purpose of the message.
 
@@ -105,7 +105,7 @@ Example:
 
 ```json
 {
-    "message_type": "FILE_OFFER",
+    "type": "FILE_OFFER",
     "payload":
     {
         "filename":"photo.jpg",
@@ -125,7 +125,7 @@ Receiver accepts transfer.
 
 ```json
 {
-    "message_type":"FILE_ACCEPT",
+    "type":"FILE_ACCEPT",
     "payload":{}
 }
 ```
@@ -138,7 +138,7 @@ Receiver rejects transfer.
 
 ```json
 {
-    "message_type":"FILE_REJECT",
+    "type":"FILE_REJECT",
     "payload":
     {
         "reason":"Authentication failed"

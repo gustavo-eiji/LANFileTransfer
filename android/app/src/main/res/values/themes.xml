@@ -1,0 +1,3 @@
+<resources>
+    <style name="Theme.LANFileTransfer" parent="Theme.MaterialComponents.DayNight.NoActionBar" />
+</resources>
