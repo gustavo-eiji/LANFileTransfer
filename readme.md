@@ -214,7 +214,6 @@ pyinstaller --windowed --onefile main.py
 
 - Better error reporting
 - Transfer cancellation
-- Destination folder selection
 - Drag & Drop support
 - Folder transfers
 - Resume interrupted transfers
