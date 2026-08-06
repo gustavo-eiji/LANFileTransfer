@@ -230,9 +230,10 @@ class MainWindow:
 
         window = tk.Toplevel(self.root)
         window.title("Settings")
-        window.geometry("350x130")
+        window.geometry("350x220")
         window.resizable(False, False)
 
+        # Password
         ttk.Label(
             window,
             text="Set new password"
@@ -240,6 +241,35 @@ class MainWindow:
 
         security_entry = ttk.Entry(window, width=40)
         security_entry.pack(fill="x", padx=10)
+
+        # ttk.Button(
+        #     window,
+        #     text="Save",
+        #     command=lambda: self.save_settings(
+        #         security_entry.get(),
+        #         window,
+        #     ),
+        # ).pack(pady=15)
+
+        # Save Folder
+        ttk.Label(
+            window,
+            text="Save received files to"
+        ).pack(anchor="w", padx=10, pady=(15, 0))
+
+        folder_var = tk.StringVar(value=self.config.save_folder)
+
+        ttk.Label(
+            window,
+            textvariable=folder_var,
+            wraplength=400,
+        ).pack(anchor="w", padx=10)
+
+        ttk.Button(
+            window,
+            text="Browse...",
+            command=lambda: self.choose_folder(folder_var),
+        ).pack(anchor="w", padx=10, pady=5)
 
         ttk.Button(
             window,
@@ -257,6 +287,16 @@ class MainWindow:
         self.status.set("Settings saved.")
 
         window.destroy()
+
+    def choose_folder(self, folder_var):
+
+        folder = filedialog.askdirectory(
+            title="Select destination folder"
+        )
+
+        if folder:
+            self.config.set_save_folder(folder)
+            folder_var.set(folder)
 
     # ADDED FOR ANDROID QR PAIRING
     def show_pairing_qr(self):

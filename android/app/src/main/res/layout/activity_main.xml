@@ -31,7 +31,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
-        android:text="Set password, Scan the QR Code and Save Settings." />
+        android:text="Salt (hex, copy the &quot;security_salt&quot; value from the PC's config/config.json)" />
 
     <EditText
         android:id="@+id/saltEdit"
@@ -88,5 +88,12 @@
             android:layout_height="wrap_content"
             android:text="" />
     </ScrollView>
+
+    <Button
+        android:id="@+id/shutdownButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="Shut Down" />
 
 </LinearLayout>

@@ -4,8 +4,7 @@ import sys
 import hashlib
 import secrets
 
-# PATCH FOR ANDROID INTEROP
-# FIXED_SALT = bytes.fromhex("3f2a9c8e1d4b7f605a3c9e1b4d7f2a06")
+DEFAULT_FOLDER = Path.home() / "Downloads"
 
 if getattr(sys, "frozen", False):
     # Running as a bundled executable
@@ -30,6 +29,8 @@ class Config:
 
         self.file = self.folder / "config.json"
 
+        self.save_folder = DEFAULT_FOLDER
+
         self.security_key = ""
         self.security_salt = ""
         self.transfer_port = 50007
@@ -47,6 +48,15 @@ class Config:
         self.security_salt = data.get("security_salt", "")
         self.transfer_port = data.get("transfer_port", 50007)
 
+        #self.save_folder = data.get("save_folder", str(DEFAULT_FOLDER))
+
+        folder = Path(data.get("save_folder", str(DEFAULT_FOLDER)))
+
+        if folder.exists() and folder.is_dir():
+            self.save_folder = folder
+        else:
+            self.save_folder = DEFAULT_FOLDER
+
     def save(self):
         self.file.write_text(
             json.dumps(
@@ -54,6 +64,7 @@ class Config:
                     "security_key": self.security_key,
                     "security_salt": self.security_salt,
                     "transfer_port": self.transfer_port,
+                    "save_folder": str(self.save_folder),
                 },
                 indent=4,
             )
@@ -76,3 +87,7 @@ class Config:
 
     def get_security_key(self) -> bytes:
         return bytes.fromhex(self.security_key)
+
+    def set_save_folder(self, folder: str):
+        self.save_folder = folder
+        self.save()

@@ -20,7 +20,6 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import com.google.mlkit.vision.codescanner.GmsBarcodeScanning
-import com.google.mlkit.vision.barcode.common.Barcode
 
 class MainActivity : AppCompatActivity() {
 
@@ -72,6 +71,7 @@ class MainActivity : AppCompatActivity() {
         val saveSettingsButton = findViewById<Button>(R.id.saveSettingsButton)
         val sendButton = findViewById<Button>(R.id.sendButton)
         val scanButton = findViewById<Button>(R.id.scanButton)
+        val shutdownButton = findViewById<Button>(R.id.shutdownButton)
 
         deviceNameEdit.setText(settingsStore.getDeviceName())
         passwordEdit.setText(settingsStore.getPassword())
@@ -90,7 +90,7 @@ class MainActivity : AppCompatActivity() {
         saveSettingsButton.setOnClickListener {
             val saltInput = saltEdit.text.toString()
             if (!CryptoUtil.isValidSaltHex(saltInput)) {
-                appendLog("After setting the password SCAN TO PAIR the QR code provided by LANFileTransfer and SAVE SETTINGS.")
+                appendLog("Salt must be a hex string (or empty) — copy \"security_salt\" from the PC's config/config.json.")
             } else {
                 settingsStore.setDeviceName(deviceNameEdit.text.toString())
                 settingsStore.setPassword(passwordEdit.text.toString())
@@ -107,6 +107,8 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        shutdownButton.setOnClickListener { shutDownApp() }
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
                 != PackageManager.PERMISSION_GRANTED
@@ -115,7 +117,7 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        val wifiManager = applicationContext.getSystemService(WIFI_SERVICE) as WifiManager
+        val wifiManager = applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
         multicastLock = wifiManager.createMulticastLock("lanfiletransfer_activity_lock").apply {
             setReferenceCounted(true)
             acquire()
@@ -139,10 +141,17 @@ class MainActivity : AppCompatActivity() {
         ContextCompat.startForegroundService(this, Intent(this, TransferServerService::class.java))
     }
 
-    // --- ADDED FOR ANDROID QR PAIRING --------------------------------------
+    private fun shutDownApp() {
+        appendLog("Shutting down...")
+        stopService(Intent(this, TransferServerService::class.java))
+        discoveryManager.stopDiscovery()
+        multicastLock?.release()
+        finishAndRemoveTask()
+    }
+
     private fun launchPairingScanner() {
         GmsBarcodeScanning.getClient(this).startScan()
-            .addOnSuccessListener { barcode: Barcode ->
+            .addOnSuccessListener { barcode ->
                 val raw = barcode.rawValue
                 if (raw == null || !raw.startsWith(QR_PAIRING_PREFIX)) {
                     appendLog("Scanned code isn't a LANFileTransfer pairing QR.")
@@ -164,7 +173,6 @@ class MainActivity : AppCompatActivity() {
                 appendLog("Scan failed: ${e.message}")
             }
     }
-    // -------------------------------------------------------------------------
 
     private fun addDevice(device: DiscoveredDevice) {
         devices[device.serviceName] = device
@@ -223,7 +231,7 @@ class MainActivity : AppCompatActivity() {
         multicastLock?.release()
         try {
             unregisterReceiver(logReceiver)
-        } catch (_: Exception) {
+        } catch (e: Exception) {
         }
         super.onDestroy()
     }

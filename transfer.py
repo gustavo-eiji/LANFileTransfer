@@ -184,18 +184,6 @@ class TransferServer:
         if data is None:
             return None
 
-        # Read exactly message_length bytes
-        # data = b""
-        # while len(data) < message_length:
-        #     chunk = conn.recv(message_length - len(data))
-        #
-        #     if not chunk:
-        #         return None
-        #
-        #     data += chunk
-
-        # decode_message() validates its own identifier and version to prevent
-        # communication with other programs.
         try:
             return decode_message(data)
 
@@ -214,13 +202,19 @@ class TransferServer:
 
     def receive_file(self, conn, filename: str, filesize: int, expected_hash: str):
 
-        # Sanitize and add (1), (2), (3)... to filenames if necessary.
         filename = Path(filename).name
-        filename = get_available_filename(filename)
+
+        if self.config.save_folder:
+            destination = Path(self.config.save_folder) / filename
+        else:
+            destination = Path(filename)
+
+        # Sanitize and add (1), (2), (3)... to filenames if necessary.
+        destination = get_available_filename(destination)
         received = 0
 
         try:
-            with open(filename, "wb") as file:
+            with open(destination, "wb") as file:
 
                 while received < filesize:
 
@@ -240,7 +234,7 @@ class TransferServer:
 
             print("Transfer complete.")
 
-            received_hash = calculate_sha256(filename)
+            received_hash = calculate_sha256(destination)
 
             print(f"Expected: {expected_hash}")
             print(f"Received: {received_hash}")
@@ -249,19 +243,19 @@ class TransferServer:
                 print("✓ SHA-256 verified.")
             else:
                 print("✗ SHA-256 mismatch!")
-                if os.path.exists(filename):
-                    os.remove(filename)
+                if os.path.exists(destination):
+                    os.remove(destination)
                 return False, "File integrity verification failed."
 
         except socket.timeout:
             print("Connection timed out.")
-            if os.path.exists(filename):
-                os.remove(filename)
+            if os.path.exists(destination):
+                os.remove(destination)
             return False, "Connection timed out"
         except ConnectionError as e:
             print(e)
-            if os.path.exists(filename):
-                os.remove(filename)
+            if os.path.exists(destination):
+                os.remove(destination)
         if received != filesize:
             print("File transfer incomplete.")
 
