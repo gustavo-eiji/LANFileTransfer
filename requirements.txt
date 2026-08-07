@@ -5,3 +5,4 @@ pypng==0.20220715.0
 qrcode[pil]==7.4.2
 typing_extensions==4.16.0
 zeroconf==0.150.0
+tkinterdnd2==0.4.3

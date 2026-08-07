@@ -6,7 +6,7 @@ Unlike cloud storage or internet-based file sharing services, LANFileTransfer tr
 
 ![Python](https://img.shields.io/badge/Python-3.12+-blue)
 ![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Android-orange)
-![Status](https://img.shields.io/badge/Status-0.7%20Alpha-yellow)
+![Status](https://img.shields.io/badge/Status-0.9%20Alpha-yellow)
 
 ---
 

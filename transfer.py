@@ -8,7 +8,7 @@ from pathlib import Path
 import os
 import struct
 import hashlib
-from settings import TRANSFER_PORT, TRANSFER_BUFFER_SIZE, SOCKET_TIMEOUT, SECURITY_CODE
+from settings import TRANSFER_PORT, TRANSFER_BUFFER_SIZE, SOCKET_TIMEOUT
 import secrets
 
 def recv_exact(conn, size: int) -> bytes | None:
@@ -209,6 +209,16 @@ class TransferServer:
         else:
             destination = Path(filename)
 
+        # Validate that the parent directory exists and is writable
+        parent_dir = destination.parent
+        if not parent_dir.exists():
+            print(f"Error: Save directory does not exist: {parent_dir}")
+            return False, f"Save directory does not exist: {parent_dir}"
+
+        if not os.access(parent_dir, os.W_OK):
+            print(f"Error: No write permission for directory: {parent_dir}")
+            return False, f"No write permission for directory: {parent_dir}"
+
         # Sanitize and add (1), (2), (3)... to filenames if necessary.
         destination = get_available_filename(destination)
         received = 0
@@ -247,17 +257,43 @@ class TransferServer:
                     os.remove(destination)
                 return False, "File integrity verification failed."
 
+        except FileNotFoundError as e:
+            print(f"File error: {e}")
+            if os.path.exists(destination):
+                os.remove(destination)
+            return False, f"Cannot create file: {e}"
+
+        except PermissionError as e:
+            print(f"Permission error: {e}")
+            if os.path.exists(destination):
+                os.remove(destination)
+            return False, f"Permission denied: {e}"
+
         except socket.timeout:
             print("Connection timed out.")
             if os.path.exists(destination):
                 os.remove(destination)
             return False, "Connection timed out"
+
         except ConnectionError as e:
-            print(e)
+            print(f"Connection error: {e}")
             if os.path.exists(destination):
                 os.remove(destination)
-        if received != filesize:
-            print("File transfer incomplete.")
+
+        except Exception as e:
+            print(f"Unexpected error during file receive: {e}")
+            if os.path.exists(destination):
+                os.remove(destination)
+            return False, f"Unexpected error: {e}"
+
+        finally:
+            # Ensure incomplete transfers are cleaned up
+            if received != filesize and os.path.exists(destination):
+                print("File transfer incomplete, cleaning up.")
+                try:
+                    os.remove(destination)
+                except Exception:
+                    pass
 
 ### CLIENT SIDE ###
 class TransferClient:
@@ -318,7 +354,7 @@ class TransferClient:
 
             if reply is None:
                 print("Connection closed.")
-                return
+                return False, "Connection closed by remote device."
 
             if reply.message_type == MessageType.FILE_REJECT:
                 print("Transfer rejected.")
