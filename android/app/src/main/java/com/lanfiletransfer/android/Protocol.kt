@@ -8,10 +8,8 @@ import java.io.OutputStream
 
 /**
  * Mirrors LANFileTransfer's protocol.py.
- *
- * IMPORTANT: PROTOCOL.md (the repo's own docs) describes the JSON key as
- * "message_type", but the actual Python implementation (protocol.py) sends
- * the key as "type". This file matches the real code, not the docs.
+ * The wire-format JSON uses "type" for the message type.
+ * This matches both protocol.py and PROTOCOL.md.
  */
 object ProtocolConstants {
     const val MAGIC = "LANFILETRANSFER"
@@ -40,7 +38,7 @@ object MessageCodec {
             throw IllegalArgumentException("Invalid protocol version: ${obj.opt("version")}")
         }
         val type = obj.getString("type")
-        val payload = obj.optJSONObject("payload") ?: JSONObject()
+        val payload = obj.optJSONObject("payload")
         return Message(type, payload)
     }
 }

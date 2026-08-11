@@ -31,9 +31,15 @@ jobs:
           pip install -r requirements.txt
           pip install pyinstaller
 
-      - name: Build
+      - name: Build Windows
+        if: matrix.artifact == 'windows'
         run: |
-          pyinstaller --clean --noconfirm --windowed --name LANFileTransfer main.py
+          pyinstaller --clean --noconfirm --windowed --name LANFileTransfer --icon=assets/icon.ico main.py
+
+      - name: Build macOS
+        if: matrix.artifact == 'mac'
+        run: |
+          pyinstaller --clean --noconfirm --windowed --name LANFileTransfer --icon=assets/icon.icns main.py
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4

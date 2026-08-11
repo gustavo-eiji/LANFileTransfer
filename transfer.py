@@ -2,7 +2,7 @@ import hmac
 import socket
 
 from config import Config
-from dispatcher import dispatch_message
+#from dispatcher import dispatch_message
 from protocol import encode_message, decode_message, Message, MessageType
 from pathlib import Path
 import os
@@ -107,12 +107,6 @@ class TransferServer:
                 if received_message is None:
                     break
 
-                # print(
-                #     f"DEBUG: [{addr}] \n"
-                #     f"DEBUG: {received_message.message_type.value} \n"
-                #     f"DEBUG: {received_message.payload} \n"
-                # )
-
                 if received_message.message_type == MessageType.FILE_OFFER:
                     filename = received_message.payload["filename"]
                     filesize = received_message.payload["filesize"]
@@ -163,12 +157,11 @@ class TransferServer:
 
                     break
 
-                reply_message = dispatch_message(received_message)
-
-                if reply_message is not None:
-                    self.send_packet(conn, reply_message)
-
-
+                print(
+                    f"Unsupported message type from {addr}: "
+                    f"{received_message.message_type}. Closing connection."
+                )
+                break
 
     def receive_packet(self, conn) -> Message | None:
         # Read the 4-byte message length
@@ -411,12 +404,6 @@ class TransferClient:
                 conn.sendall(chunk)
 
                 sent += len(chunk)
-
-                # print(
-                #     f"Sent {sent}/{filesize} bytes"
-                # )
-
-        # print("Transfer complete.")
 
                 if filesize:
                     percent = (sent/filesize) * 100
